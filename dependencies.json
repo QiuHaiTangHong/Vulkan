@@ -1,0 +1,29 @@
+{
+    "dependencies": {
+        "glfw": {
+            "url": "https://github.com/glfw/glfw.git",
+            "tag": "3.4",
+            "cmake_args": [
+                "-DGLFW_BUILD_DOCS=OFF",
+                "-DGLFW_BUILD_EXAMPLES=OFF"
+            ]
+        },
+        "glm": {
+            "url": "https://github.com/g-truc/glm.git",
+            "tag": "1.0.3",
+            "cmake_args": [
+                "-DGLM_TEST_ENABLE=OFF",
+                "-DGLM_BUILD_LIBRARY=OFF"
+            ],
+            "skip_build": true
+        },
+        "imgui": {
+            "url": "https://github.com/ocornut/imgui.git",
+            "tag": "v1.92.6",
+            "cmake_args": [],
+            "only_copy": true
+        }
+    },
+    "build_type": "Debug",
+    "install_root_path": "${project_root}/lib"
+}

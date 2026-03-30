@@ -1,0 +1,6 @@
+/lib/
+/build/
+/deps/
+/cmake-build-*/
+/.vscode
+/.idea
