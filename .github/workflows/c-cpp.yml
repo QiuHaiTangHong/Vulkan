@@ -15,7 +15,7 @@ jobs:
       with:
         submodules: recursive
 
-    - name: Install Dependencies
+    - name: 安装系统级依赖
       run: |
         sudo apt-get update
         sudo apt-get install -y \
@@ -23,22 +23,22 @@ jobs:
           libxkbcommon-dev libwayland-dev libx11-dev \
           libxcursor-dev libxinerama-dev libxrandr-dev \
           libxi-dev libgl1-mesa-dev libvulkan-dev \
-          vulkan-tools libglfw3-dev libglm-dev
+          libglfw3-dev libglm-dev
 
-    - name: Install LLVM 22 and libc++
+    - name: 安装 LLVM 22 和 libc++
       run: |
         wget https://apt.llvm.org/llvm.sh
         chmod +x llvm.sh
         sudo ./llvm.sh 22
         sudo apt-get install -y clang-22 libc++-22-dev libc++abi-22-dev
 
-    - name: Run Sync Deps Script
+    - name: 运行依赖同步脚本
       run: |
         if [ -f "sync_deps.py" ]; then
           python3 sync_deps.py
         fi
 
-    - name: Configure CMake
+    - name: 配置 CMake
       run: |
         cmake -B build -G Ninja \
           -DCMAKE_C_COMPILER=clang-22 \
@@ -47,5 +47,5 @@ jobs:
           -DCMAKE_CXX_FLAGS="-stdlib=libc++" \
           -DCMAKE_EXE_LINKER_FLAGS="-stdlib=libc++"
 
-    - name: Build
+    - name: 构建
       run: cmake --build build

@@ -11,154 +11,178 @@ import CustomVulkan.Common;
 import CustomVulkan.Commands;
 export namespace CustomVulkan {
     struct CreateVulkanGraphicsPipeline {
-            std::shared_ptr<GlfwContext> ctx;
+        std::shared_ptr<GlfwContext> ctx;
 
-            [[nodiscard]] auto createVulkanGraphicsPipeline() const -> CreateVulkanFramebuffers {
-                const auto vertShaderCode = readFile("resource/shader/vert.spv");
-                const auto fragShaderCode = readFile("resource/shader/frag.spv");
+        [[nodiscard]] auto
+        createVulkanGraphicsPipeline() const -> CreateVulkanFramebuffers {
+            const auto vertShaderCode = readFile("resource/shader/vert.spv");
+            const auto fragShaderCode = readFile("resource/shader/frag.spv");
 
-                const vk::Device device = ctx->vulkanContext.device.get();
-                const auto vertModuleRes = createShaderModule(device, vertShaderCode);
-                const auto fragModuleRes = createShaderModule(device, fragShaderCode);
-                const vk::PipelineShaderStageCreateInfo vertShaderStageInfo{
-                        {},
-                        vk::ShaderStageFlagBits::eVertex,
-                        vertModuleRes.get(),
-                        "main"};
-                const vk::PipelineShaderStageCreateInfo fragShaderStageInfo{
-                        {},
-                        vk::ShaderStageFlagBits::eFragment,
-                        fragModuleRes.get(),
-                        "main"};
+            const vk::Device device  = ctx->vulkanContext.device.get();
+            const auto vertModuleRes = createShaderModule(
+                    device,
+                    vertShaderCode
+                    );
+            const auto fragModuleRes = createShaderModule(
+                    device,
+                    fragShaderCode
+                    );
+            vk::PipelineShaderStageCreateInfo vertShaderStageInfo{};
+            vertShaderStageInfo
+                    .setStage(vk::ShaderStageFlagBits::eVertex)
+                    .setModule(vertModuleRes.get())
+                    .setPName("main");
 
-                const vk::PipelineShaderStageCreateInfo shaderStages[] = {
-                        vertShaderStageInfo,
-                        fragShaderStageInfo};
+            vk::PipelineShaderStageCreateInfo fragShaderStageInfo{};
+            fragShaderStageInfo
+                    .setStage(vk::ShaderStageFlagBits::eFragment)
+                    .setModule(fragModuleRes.get())
+                    .setPName("main");
 
-                constexpr vk::PipelineVertexInputStateCreateInfo vertexInputInfo{
-                        {},
-                        0,
-                        nullptr,
-                        0,
-                        nullptr,
-                        nullptr};
+            const vk::PipelineShaderStageCreateInfo shaderStages[] = {
+                    vertShaderStageInfo,
+                    fragShaderStageInfo
+            };
 
-                constexpr vk::PipelineInputAssemblyStateCreateInfo inputAssembly{
-                        {},
-                        vk::PrimitiveTopology::eTriangleList,
-                        false,
-                        nullptr};
+            vk::PipelineVertexInputStateCreateInfo vertexInputInfo{};
+            vertexInputInfo
+                    .setVertexAttributeDescriptionCount(0)
+                    .setPVertexAttributeDescriptions(nullptr)
+                    .setVertexBindingDescriptionCount(0)
+                    .setVertexBindingDescriptions(nullptr)
+                    .setPNext(nullptr);
 
-                constexpr vk::PipelineViewportStateCreateInfo viewportState{
-                        {},
-                        1,
-                        nullptr,
-                        1,
-                        nullptr,
-                        nullptr};
+            vk::PipelineInputAssemblyStateCreateInfo inputAssembly{};
+            inputAssembly
+                    .setTopology(vk::PrimitiveTopology::eTriangleList)
+                    .setPrimitiveRestartEnable(vk::False)
+                    .setPNext(nullptr);
 
-                constexpr vk::PipelineRasterizationStateCreateInfo rasterizer{
-                        {},
-                        false,
-                        false,
-                        vk::PolygonMode::eFill,
-                        vk::CullModeFlagBits::eBack,
-                        vk::FrontFace::eClockwise,
-                        false,
-                        0.0f,
-                        0.0f,
-                        0.0f,
-                        1.0f};
+            vk::PipelineViewportStateCreateInfo viewportState{};
+            viewportState
+                    .setViewportCount(1)
+                    .setScissorCount(1);
 
-                constexpr vk::PipelineMultisampleStateCreateInfo multisampling{
-                        {},
-                        vk::SampleCountFlagBits::e1,
-                        false};
+            vk::PipelineRasterizationStateCreateInfo rasterizer{};
+            rasterizer
+                    .setDepthBiasEnable(vk::False)
+                    .setRasterizerDiscardEnable(vk::False)
+                    .setPolygonMode(vk::PolygonMode::eFill)
+                    .setCullMode(vk::CullModeFlagBits::eBack)
+                    .setFrontFace(vk::FrontFace::eClockwise)
+                    .setDepthBiasEnable(vk::False)
+                    .setDepthBiasConstantFactor(0.0f)
+                    .setDepthBiasClamp(0.0f)
+                    .setDepthBiasSlopeFactor(0.0f)
+                    .setLineWidth(1.0f);
 
-                constexpr vk::PipelineColorBlendAttachmentState colorBlendAttachment{
-                        false,
-                        vk::BlendFactor::eZero,
-                        vk::BlendFactor::eZero,
-                        vk::BlendOp::eAdd,
-                        vk::BlendFactor::eZero,
-                        vk::BlendFactor::eZero,
-                        vk::BlendOp::eAdd,
-                        {vk::ColorComponentFlagBits::eR |
-                         vk::ColorComponentFlagBits::eG |
-                         vk::ColorComponentFlagBits::eB |
-                         vk::ColorComponentFlagBits::eA}};
+            vk::PipelineMultisampleStateCreateInfo multisampling{};
+            multisampling
+                    .setRasterizationSamples(vk::SampleCountFlagBits::e1)
+                    .setSampleShadingEnable(vk::False);
 
-                vk::PipelineColorBlendStateCreateInfo colorBlending{
-                        {},
-                        false,
-                        vk::LogicOp::eCopy,
-                        1,
-                        &colorBlendAttachment,
-                        {0.0f, 0.0f, 0.0f, 0.0f},
-                        nullptr};
+            vk::PipelineColorBlendAttachmentState colorBlendAttachment{};
+            colorBlendAttachment
+                    .setBlendEnable(vk::True)
+                    .setSrcColorBlendFactor(vk::BlendFactor::eSrcAlpha)
+                    .setDstColorBlendFactor(vk::BlendFactor::eOneMinusSrcAlpha)
+                    .setColorBlendOp(vk::BlendOp::eAdd)
+                    .setSrcAlphaBlendFactor(vk::BlendFactor::eOne)
+                    .setDstAlphaBlendFactor(vk::BlendFactor::eZero)
+                    .setAlphaBlendOp(vk::BlendOp::eAdd)
+                    .setColorWriteMask(
+                            {
+                                    vk::ColorComponentFlagBits::eR |
+                                    vk::ColorComponentFlagBits::eG |
+                                    vk::ColorComponentFlagBits::eB |
+                                    vk::ColorComponentFlagBits::eA
+                            }
+                            );
 
-                const std::vector dynamicStates = {
-                        vk::DynamicState::eViewport,
-                        vk::DynamicState::eScissor};
+            vk::PipelineColorBlendStateCreateInfo colorBlending{};
+            colorBlending
+                    .setLogicOp(vk::LogicOp::eCopy)
+                    .setLogicOpEnable(vk::False)
+                    .setAttachmentCount(1)
+                    .setPAttachments(&colorBlendAttachment)
+                    .setBlendConstants(vk::ArrayWrapper1D<float, 4>({0.0f, 0.0f, 0.0f, 0.0f}))
+                    .setPNext(nullptr);
 
-                const vk::PipelineDynamicStateCreateInfo dynamicState{
-                        {},
-                        static_cast<uint32_t>(dynamicStates.size()),
-                        dynamicStates.data()};
+            const std::vector dynamicStates = {
+                    vk::DynamicState::eViewport,
+                    vk::DynamicState::eScissor
+            };
 
-                constexpr vk::PipelineLayoutCreateInfo pipelineLayoutInfo{
-                        {},
-                        0,
-                        nullptr,
-                        0,
-                        nullptr,
-                        nullptr};
+            vk::PipelineDynamicStateCreateInfo dynamicState{};
+            dynamicState
+                    .setDynamicStateCount(static_cast<uint32_t>(dynamicStates.size()))
+                    .setPDynamicStates(dynamicStates.data());
 
-                try {
-                    ctx->vulkanContext.pipelineLayout = VulkanResource<vk::PipelineLayout>(
-                            device.createPipelineLayout(pipelineLayoutInfo),
-                            [device](const vk::PipelineLayout &py) {
-                                device.destroyPipelineLayout(py);
-                                std::cout << "[Vulkan 销毁信息]: 销毁管道布局(pipelineLayout)!\n";
-                            });
-                } catch (const vk::SystemError &err) {
-                    throw std::runtime_error("创建管道布局失败: " + std::string(err.what()));
-                }
+            vk::PipelineLayoutCreateInfo pipelineLayoutInfo{};
+            pipelineLayoutInfo
+                    .setSetLayoutCount(0)
+                    .setPSetLayouts(nullptr)
+                    .setPushConstantRangeCount(0)
+                    .setPPushConstantRanges(nullptr)
+                    .setPNext(nullptr);
 
-                vk::GraphicsPipelineCreateInfo pipelineInfo{};
-                pipelineInfo.stageCount = 2;
-                pipelineInfo.pStages = shaderStages;
-                pipelineInfo.pVertexInputState = &vertexInputInfo;
-                pipelineInfo.pInputAssemblyState = &inputAssembly;
-                pipelineInfo.pViewportState = &viewportState;
-                pipelineInfo.pRasterizationState = &rasterizer;
-                pipelineInfo.pMultisampleState = &multisampling;
-                pipelineInfo.pColorBlendState = &colorBlending;
-                pipelineInfo.pDynamicState = &dynamicState;
-                pipelineInfo.layout = ctx->vulkanContext.pipelineLayout.get();
-                pipelineInfo.renderPass = ctx->vulkanContext.renderPass.get();
-                pipelineInfo.subpass = 0;
-                pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
-
-                try {
-                    ctx->vulkanContext.graphicsPipeline = VulkanResource<vk::Pipeline>(
-                            device.createGraphicsPipelines(nullptr, {pipelineInfo}).value[0],
-                            [device](const vk::Pipeline &p) {
-                                device.destroyPipeline(p);
-                                std::cout << "[Vulkan 销毁信息]: 销毁图形管线(graphicsPipeline)!\n";
-                            });
-                } catch (const vk::SystemError &err) {
-                    throw std::runtime_error("创建图形管线失败: " + std::string(err.what()));
-                }
-
-                return {ctx};
+            try {
+                ctx->vulkanContext.pipelineLayout = VulkanResource<
+                    vk::PipelineLayout>(
+                        device.createPipelineLayout(pipelineLayoutInfo),
+                        [device](const vk::PipelineLayout &py) {
+                            device.destroyPipelineLayout(py);
+                            std::cout << "[Vulkan 销毁信息]: 销毁管道布局(pipelineLayout)!\n";
+                        }
+                        );
+            } catch (const vk::SystemError &err) {
+                throw std::runtime_error(
+                        "创建管道布局失败: " + std::string(err.what())
+                        );
             }
 
+            vk::GraphicsPipelineCreateInfo pipelineInfo{};
+            pipelineInfo
+                    .setStageCount(2)
+                    .setStages(shaderStages)
+                    .setPVertexInputState(&vertexInputInfo)
+                    .setPInputAssemblyState(&inputAssembly)
+                    .setPViewportState(&viewportState)
+                    .setPRasterizationState(&rasterizer)
+                    .setPMultisampleState(&multisampling)
+                    .setPColorBlendState(&colorBlending)
+                    .setPDynamicState(&dynamicState)
+                    .setLayout(ctx->vulkanContext.pipelineLayout.get())
+                    .setRenderPass(ctx->vulkanContext.renderPass.get())
+                    .setSubpass(0)
+                    .setBasePipelineHandle(nullptr);
+
+            try {
+                ctx->vulkanContext.graphicsPipeline = VulkanResource<
+                    vk::Pipeline>(
+                        device.createGraphicsPipelines(nullptr, {pipelineInfo}).
+                               value[0],
+                        [device](const vk::Pipeline &p) {
+                            device.destroyPipeline(p);
+                            std::cout <<
+                                    "[Vulkan 销毁信息]: 销毁图形管线(graphicsPipeline)!\n";
+                        }
+                        );
+            } catch (const vk::SystemError &err) {
+                throw std::runtime_error(
+                        "创建图形管线失败: " + std::string(err.what())
+                        );
+            }
+
+            return {ctx};
+        }
+
         private:
-            static auto readFile(const std::string &filename) -> std::vector<char> {
-                std::ifstream file{
-                        filename,
-                        std::ios::ate | std::ios::binary};
+
+            static auto readFile(
+                    const std::string &filename
+                    ) -> std::vector<char> {
+                std::ifstream file{filename, std::ios::ate | std::ios::binary};
                 if (!file.is_open()) {
                     throw std::runtime_error("无法打开文件");
                 }
@@ -172,7 +196,8 @@ export namespace CustomVulkan {
 
             static auto createShaderModule(
                     const vk::Device &device,
-                    const std::vector<char> &code) -> VulkanResource<vk::ShaderModule> {
+                    const std::vector<char> &code
+                    ) -> VulkanResource<vk::ShaderModule> {
                 const vk::ShaderModuleCreateInfo createInfo{
                         {},
                         code.size(),
@@ -183,10 +208,10 @@ export namespace CustomVulkan {
                 try {
                     handle = device.createShaderModule(createInfo);
                 } catch (const vk::SystemError &err) {
-                    std::cerr << "[Vulkan 错误]: ShaderModule 创建失败: " << err.what() << std::endl;
+                    std::cerr << "[Vulkan 错误]: ShaderModule 创建失败: " << err.
+                            what() << std::endl;
                 }
-                return {
-                        handle,
+                return {handle,
                         [device](const vk::ShaderModule &sm) {
                             device.destroyShaderModule(sm);
                             std::cout << "[Vulkan 销毁]: ShaderModule 已自动释放\n";
@@ -195,52 +220,54 @@ export namespace CustomVulkan {
     };
 
     struct CreateVulkanRenderPass {
-            std::shared_ptr<GlfwContext> ctx;
+        std::shared_ptr<GlfwContext> ctx;
 
-            [[nodiscard]] CreateVulkanGraphicsPipeline createVulkanRenderPass() const {
-                const vk::AttachmentDescription colorAttachment{
-                        {},
-                        ctx->vulkanContext.swapChainImageFormat,
-                        vk::SampleCountFlagBits::e1,
-                        vk::AttachmentLoadOp::eClear,
-                        vk::AttachmentStoreOp::eStore,
-                        vk::AttachmentLoadOp::eDontCare,
-                        vk::AttachmentStoreOp::eDontCare,
-                        vk::ImageLayout::eUndefined,
-                        vk::ImageLayout::ePresentSrcKHR};
+        [[nodiscard]] CreateVulkanGraphicsPipeline
+        createVulkanRenderPass() const {
+            vk::AttachmentDescription colorAttachment{};
+            colorAttachment
+                    .setFormat(ctx->vulkanContext.swapChainImageFormat)
+                    .setSamples(vk::SampleCountFlagBits::e1)
+                    .setLoadOp(vk::AttachmentLoadOp::eClear)
+                    .setStoreOp(vk::AttachmentStoreOp::eStore)
+                    .setStencilLoadOp(vk::AttachmentLoadOp::eDontCare)
+                    .setStencilStoreOp(vk::AttachmentStoreOp::eDontCare)
+                    .setInitialLayout(vk::ImageLayout::eUndefined)
+                    .setFinalLayout(vk::ImageLayout::ePresentSrcKHR);
 
-                constexpr vk::AttachmentReference colorAttachmentRef{
-                        0,
-                        vk::ImageLayout::eColorAttachmentOptimal};
+            vk::AttachmentReference colorAttachmentRef{};
+            colorAttachmentRef
+                    .setAttachment(0)
+                    .setLayout(vk::ImageLayout::eColorAttachmentOptimal);
 
-                // ReSharper disable once CppVariableCanBeMadeConstexpr
-                const vk::SubpassDescription subpass{
-                        {},
-                        vk::PipelineBindPoint::eGraphics,
-                        0,
-                        nullptr,
-                        1,
-                        &colorAttachmentRef};
+            vk::SubpassDescription subpass{};
+            subpass
+                    .setPipelineBindPoint(vk::PipelineBindPoint::eGraphics)
+                    .setColorAttachmentCount(1)
+                    .setPColorAttachments(&colorAttachmentRef);
 
-                const vk::RenderPassCreateInfo renderPassInfo{
-                        {},
-                        1,
-                        &colorAttachment,
-                        1,
-                        &subpass};
+            vk::RenderPassCreateInfo renderPassInfo{};
+            renderPassInfo
+                    .setAttachmentCount(1)
+                    .setPAttachments(&colorAttachment)
+                    .setSubpassCount(1)
+                    .setPSubpasses(&subpass);
 
-                try {
-                    const vk::Device device = ctx->vulkanContext.device.get();
-                    ctx->vulkanContext.renderPass = VulkanResource<vk::RenderPass>(
-                            device.createRenderPass(renderPassInfo, nullptr),
-                            [device](const vk::RenderPass &rp) {
-                                device.destroyRenderPass(rp);
-                                std::cout << "[Vulkan 销毁信息]: 销毁渲染流程(renderPass)!\n";
-                            });
-                } catch (const vk::SystemError &err) {
-                    throw std::runtime_error("无法创建渲染通道: " + std::string(err.what()));
-                }
-                return {ctx};
+            try {
+                const vk::Device device       = ctx->vulkanContext.device.get();
+                ctx->vulkanContext.renderPass = VulkanResource<vk::RenderPass>(
+                        device.createRenderPass(renderPassInfo, nullptr),
+                        [device](const vk::RenderPass &rp) {
+                            device.destroyRenderPass(rp);
+                            std::cout << "[Vulkan 销毁信息]: 销毁渲染流程(renderPass)!\n";
+                        }
+                        );
+            } catch (const vk::SystemError &err) {
+                throw std::runtime_error(
+                        "无法创建渲染通道: " + std::string(err.what())
+                        );
             }
+            return {ctx};
+        }
     };
 }

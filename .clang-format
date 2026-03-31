@@ -1,9 +1,9 @@
-# Generated from CLion C/C++ Code Style settings
 ---
 Language: Cpp
 BasedOnStyle: LLVM
+AccessModifierOffset: -4
 AlignAfterOpenBracket: AlwaysBreak
-AlignConsecutiveAssignments: false
+AlignConsecutiveAssignments: true
 AlignConsecutiveDeclarations: false
 AlignOperands: true
 AlignTrailingComments: true
@@ -32,9 +32,10 @@ BraceWrapping:
 BreakBeforeBraces: Custom
 BreakConstructorInitializers: AfterColon
 BreakConstructorInitializersBeforeComma: false
-ColumnLimit: 0
+ColumnLimit: 120
 ConstructorInitializerAllOnOneLineOrOnePerLine: false
 ContinuationIndentWidth: 8
+EmptyLineAfterAccessModifier: Always
 IncludeCategories: 
   - Regex: '^<.*'
     Priority: 1
@@ -47,11 +48,9 @@ IndentAccessModifiers: True
 IndentCaseLabels: true
 IndentPPDirectives: BeforeHash
 IndentWidth: 4
-IndentWrappedFunctionNames: true
 InsertNewlineAtEOF: true
 MacroBlockBegin: ''
 MacroBlockEnd: ''
-MaxEmptyLinesToKeep: 2
 NamespaceIndentation: All
 SpaceAfterCStyleCast: true
 SpaceAfterTemplateKeyword: false

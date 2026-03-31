@@ -1,29 +1,58 @@
 {
-    "dependencies": {
-        "glfw": {
-            "url": "https://github.com/glfw/glfw.git",
-            "tag": "3.4",
-            "cmake_args": [
-                "-DGLFW_BUILD_DOCS=OFF",
-                "-DGLFW_BUILD_EXAMPLES=OFF"
-            ]
-        },
-        "glm": {
-            "url": "https://github.com/g-truc/glm.git",
-            "tag": "1.0.3",
-            "cmake_args": [
-                "-DGLM_TEST_ENABLE=OFF",
-                "-DGLM_BUILD_LIBRARY=OFF"
-            ],
-            "skip_build": true
-        },
-        "imgui": {
-            "url": "https://github.com/ocornut/imgui.git",
-            "tag": "v1.92.6",
-            "cmake_args": [],
-            "only_copy": true
-        }
+  "dependencies": {
+    "glfw": {
+      "url": "https://github.com/glfw/glfw.git",
+      "tag": "3.4",
+      "cmake_args": [
+        "-DGLFW_BUILD_DOCS=OFF",
+        "-DGLFW_BUILD_EXAMPLES=OFF"
+      ]
     },
-    "build_type": "Debug",
-    "install_root_path": "${project_root}/lib"
+    "glm": {
+      "url": "https://github.com/g-truc/glm.git",
+      "tag": "1.0.3",
+      "cmake_args": [
+        "-DGLM_TEST_ENABLE=OFF",
+        "-DGLM_BUILD_LIBRARY=OFF"
+      ],
+      "skip_build": true
+    },
+    "imgui": {
+      "url": "https://github.com/ocornut/imgui.git",
+      "tag": "v1.92.6",
+      "cmake_args": [],
+      "only_copy": true
+    },
+    "Vulkan-Headers": {
+      "url": "https://github.com/KhronosGroup/Vulkan-Headers.git",
+      "tag": "vulkan-sdk-1.4.341.0",
+      "cmake_args": [],
+      "skip_build": true
+    },
+    "Vulkan-ValidationLayers": {
+      "url": "https://github.com/KhronosGroup/Vulkan-ValidationLayers.git",
+      "tag": "vulkan-sdk-1.4.341.0",
+      "cmake_args": [
+        "-DUPDATE_DEPS=ON",
+        "-DBUILD_WERROR=OFF",
+        "-DBUILD_TESTS=OFF"
+      ]
+    },
+    "glslang": {
+      "url": "https://github.com/KhronosGroup/glslang.git",
+      "tag": "vulkan-sdk-1.4.341.0",
+      "cmake_args": [],
+      "parent_command": [
+        "${current_src_path}/update_glslang_sources.py"
+      ]
+    }
+  },
+  "install_root_path": "${project_root}/lib",
+  "generator": "Ninja",
+  "build_type": "Debug",
+  "global_cmake_args": [
+    "-DCMAKE_C_COMPILER=clang",
+    "-DCMAKE_CXX_COMPILER=clang++",
+    "-DCMAKE_BUILD_TYPE=${build_type}"
+  ]
 }
