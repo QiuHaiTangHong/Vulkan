@@ -306,6 +306,8 @@ export namespace CustomVulkan {
         VulkanResource<std::vector<vk::Fence> > inFlightFences{};
 
         uint32_t currentFrame = 0;
+
+        bool framebufferResized = false;
     };
 
     struct GlfwContext {
@@ -320,5 +322,11 @@ export namespace CustomVulkan {
         };
 
         VulkanContext vulkanContext;
+    };
+
+    struct IVulkanInit {
+    };
+
+    struct IVulkanRecreate {
     };
 } // namespace CustomVulkan

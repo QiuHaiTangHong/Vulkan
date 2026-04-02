@@ -9,10 +9,12 @@ export module CustomVulkan.Sync;
 import CustomVulkan.Common;
 
 export namespace CustomVulkan {
-    struct CreateVulkanSyncObjects {
+    template<typename Tag>
+    struct VulkanSyncObjects {
         std::shared_ptr<GlfwContext> ctx;
 
-        [[nodiscard]] std::shared_ptr<GlfwContext> createVulkanSyncObjects() const {
+        [[nodiscard]] auto createVulkanSyncObjects() const -> std::shared_ptr<GlfwContext> requires std::is_same_v<
+            Tag, IVulkanInit> {
             const auto device = ctx->vulkanContext.device.get();
             std::vector<vk::Semaphore> imgSems(VulkanSettings::maxFramesInFlight);
             std::vector<vk::Semaphore> renSems(VulkanSettings::maxFramesInFlight);

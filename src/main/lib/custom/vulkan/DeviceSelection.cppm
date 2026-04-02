@@ -12,10 +12,12 @@ import CustomVulkan.Common;
 import CustomVulkan.Swapchain;
 
 export namespace CustomVulkan {
-    struct CreateVulkanLogicalDevice {
+    template<typename Tag>
+    struct VulkanLogicalDevice {
         std::shared_ptr<GlfwContext> ctx;
 
-        [[nodiscard]] CreateVulkanSwapChain createVulkanLogicalDevice() const {
+        [[nodiscard]] auto createVulkanLogicalDevice() const -> VulkanSwapChain<IVulkanInit> requires std::is_same_v<
+            Tag, IVulkanInit> {
             const auto [graphicsFamily, presentFamily] =
                     VulkanTools::findQueueFamilies(
                             ctx->vulkanContext.physicalDevice,
@@ -28,6 +30,7 @@ export namespace CustomVulkan {
                     presentFamily.value()};
 
             auto queuePriority = 1.0f;
+            queueCreateInfos.reserve(uniqueQueueFamilies.size());
             for (uint32_t queueFamily: uniqueQueueFamilies) {
                 queueCreateInfos.push_back(
                         {{}, queueFamily, 1, &queuePriority}
@@ -66,11 +69,12 @@ export namespace CustomVulkan {
         }
     };
 
-    struct PickVulkanPhysicalDevice {
+    template<typename Tag>
+    struct VulkanPhysicalDevice {
         std::shared_ptr<GlfwContext> ctx;
 
-        [[nodiscard]] CreateVulkanLogicalDevice
-        pickVulkanPhysicalDevice() const {
+        [[nodiscard]] auto
+        pickVulkanPhysicalDevice() const -> VulkanLogicalDevice<IVulkanInit> requires std::is_same_v<Tag, IVulkanInit> {
             const std::vector<vk::PhysicalDevice> devices =
                     ctx->vulkanContext.instance.get()
                        .enumeratePhysicalDevices();

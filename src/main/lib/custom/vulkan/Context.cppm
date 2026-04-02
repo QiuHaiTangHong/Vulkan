@@ -14,10 +14,12 @@ import CustomVulkan.Common;
 import CustomVulkan.DeviceSelection;
 
 export namespace CustomVulkan {
-    struct CreateVulkanSurface {
+    template<typename Tag>
+    struct VulkanSurface {
         std::shared_ptr<GlfwContext> ctx;
 
-        [[nodiscard]] auto createVulkanSurface() const -> PickVulkanPhysicalDevice {
+        [[nodiscard]] auto createVulkanSurface() const -> VulkanPhysicalDevice<IVulkanInit> requires std::is_same_v<
+            Tag, IVulkanInit> {
             VkSurfaceKHR tempSurface;
             if (glfwCreateWindowSurface(
                         ctx->vulkanContext.instance.get(),
@@ -41,10 +43,12 @@ export namespace CustomVulkan {
         }
     };
 
-    struct SetupVulkanDebugMessenger {
+    template<typename Tag>
+    struct VulkanDebugMessenger {
         std::shared_ptr<GlfwContext> ctx;
 
-        [[nodiscard]] auto setupVulkanDebugMessenger() const -> CreateVulkanSurface {
+        [[nodiscard]] auto setupVulkanDebugMessenger() const -> VulkanSurface<IVulkanInit> requires std::is_same_v<
+            Tag, IVulkanInit> {
             if constexpr (!VulkanSettings::enableValidationLayers) {
                 // ReSharper disable once CppDFAUnreachableCode
                 return {ctx};
@@ -65,11 +69,12 @@ export namespace CustomVulkan {
         }
     };
 
-    struct CreateVulkanInstance {
+    template<typename Tag>
+    struct VulkanInstance {
         std::shared_ptr<GlfwContext> ctx;
 
         [[nodiscard]] auto
-        createVulkanInstance() const -> SetupVulkanDebugMessenger {
+        createVulkanInstance() const -> VulkanDebugMessenger<IVulkanInit> requires std::is_same_v<Tag, IVulkanInit> {
             setEnvironmentVariable("VK_LAYER_PATH", std::filesystem::current_path());
             VULKAN_HPP_DEFAULT_DISPATCHER.init(vkGetInstanceProcAddr);
             // ReSharper disable once CppRedundantBooleanExpressionArgument
@@ -144,7 +149,7 @@ export namespace CustomVulkan {
             static auto checkValidationLayerSupport() -> bool {
                 const auto layerProperties = vk::enumerateInstanceLayerProperties();
                 for (const char *layerName: VulkanSettings::validationLayers) {
-                    bool layerFound = false;
+                    auto layerFound = false;
                     for (const auto &layerProperty: layerProperties) {
                         if (strcmp(
                                     layerName,
@@ -167,15 +172,23 @@ export namespace CustomVulkan {
             const int width,
             const int height,
             const char *title
-            ) -> CreateVulkanInstance {
+            ) -> VulkanInstance<IVulkanInit> {
         glfwInit();
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-        glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+        glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
         glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE);
 
         const auto ctx = std::make_shared<GlfwContext>();
         ctx->window.reset(
                 glfwCreateWindow(width, height, title, nullptr, nullptr)
+                );
+        glfwSetWindowUserPointer(ctx->window.get(), ctx.get());
+        glfwSetFramebufferSizeCallback(
+                ctx->window.get(),
+                [](GLFWwindow *window, int, int) {
+                    const auto context = static_cast<GlfwContext *>(glfwGetWindowUserPointer(window));
+                    context->vulkanContext.framebufferResized = true;
+                }
                 );
         return {ctx};
     }

@@ -11,6 +11,8 @@ export module CustomVulkan.Encapsulation;
 import CustomVulkan.Common;
 import CustomVulkan.Sync;
 import CustomVulkan.Context;
+import CustomVulkan.Swapchain;
+import CustomVulkan.Commands;
 
 export namespace CustomVulkan {
     class VulkanInit {
@@ -75,12 +77,14 @@ export namespace CustomVulkan {
                             &imageIndex
                             );
                     if (acquireResult == vk::Result::eErrorOutOfDateKHR) {
+                        recreateSwapChain(ctx);
                         return;
                     }
                     if (acquireResult != vk::Result::eSuccess && acquireResult != vk::Result::eSuboptimalKHR) {
                         throw std::runtime_error("获取交换链图像失败！");
                     }
                 } catch ([[maybe_unused]] const vk::OutOfDateKHRError &err) {
+                    recreateSwapChain(ctx);
                     return;
                 }
 
@@ -114,12 +118,17 @@ export namespace CustomVulkan {
 
                 try {
                     if (const auto &presentResult = presentQueue.presentKHR(presentInfo);
-                        presentResult == vk::Result::eSuboptimalKHR) {
+                        presentResult == vk::Result::eSuboptimalKHR ||
+                        presentResult == vk::Result::eErrorOutOfDateKHR ||
+                        ctx->vulkanContext.framebufferResized) {
+                        ctx->vulkanContext.framebufferResized = false;
+                        recreateSwapChain(ctx);
                     }
                     ctx->vulkanContext.currentFrame =
                             (ctx->vulkanContext.currentFrame + 1) % VulkanSettings::maxFramesInFlight;
                 } catch ([[maybe_unused]] const vk::OutOfDateKHRError &err) {
-
+                    ctx->vulkanContext.framebufferResized = false;
+                    recreateSwapChain(ctx);
                 } catch (const vk::SystemError &err) {
                     throw std::runtime_error("呈现时发生系统错误: " + std::string(err.what()));
                 }
@@ -175,6 +184,26 @@ export namespace CustomVulkan {
                 } catch (const vk::SystemError &err) {
                     throw std::runtime_error("结束录制命令缓冲区失败: " + std::string(err.what()));
                 }
+            }
+
+            static void recreateSwapChain(const std::shared_ptr<GlfwContext> &ctx) {
+                auto width = 0, height = 0;
+                glfwGetFramebufferSize(ctx->window.get(), &width, &height);
+                while (width == 0 || height == 0) {
+                    glfwGetFramebufferSize(ctx->window.get(), &width, &height);
+                    glfwWaitEvents();
+                }
+
+                ctx->vulkanContext.device.get().waitIdle();
+
+                VulkanSwapChain<IVulkanRecreate>{ctx}
+                        .recreateSwapChain()
+                        .recreateVulkanImageViews()
+                        .recreateVulkanRenderPass()
+                        .recreateVulkanGraphicsPipeline()
+                        .recreateVulkanFramebuffers()
+                        .cleanVulkanCommandPool()
+                        .recreateVulkanCommandBuffer();
             }
     };
 } // namespace CustomVulkan

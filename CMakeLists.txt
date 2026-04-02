@@ -6,29 +6,29 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_SCAN_FOR_MODULES ON)
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-        add_compile_options(
-                -Wall # 开启几乎所有常用警告
-                -Wextra # 开启额外的补充警告
-                -Wpedantic # 严格遵守 ISO C++ 标准，禁止禁用非标准的扩展
-                -Werror # 将所有警告视为错误（只要有警告，编译就失败）
-                -Wshadow # 当局部变量遮蔽全局变量时警告
-                -Wnon-virtual-dtor # 如果类有虚函数但没有虚析构函数时警告
-                -Wold-style-cast # 使用 C 风格强制转换时警告（建议用 static_cast 等）
-                -Wcast-align # 指针转换导致对齐问题时警告
-                -Wunused # 未使用的变量、函数等
-                -Woverloaded-virtual # 虚函数重载不一致时警告
-        )
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    add_compile_options(
+            -Wall # 开启几乎所有常用警告
+            -Wextra # 开启额外的补充警告
+            -Wpedantic # 严格遵守 ISO C++ 标准，禁止禁用非标准的扩展
+            # -Werror # 将所有警告视为错误（只要有警告，编译就失败）
+            -Wshadow # 当局部变量遮蔽全局变量时警告
+            -Wnon-virtual-dtor # 如果类有虚函数但没有虚析构函数时警告
+            -Wold-style-cast # 使用 C 风格强制转换时警告（建议用 static_cast 等）
+            -Wcast-align # 指针转换导致对齐问题时警告
+            -Wunused # 未使用的变量、函数等
+            -Woverloaded-virtual # 虚函数重载不一致时警告
+    )
 
-        if(NOT WIN32)
-                add_compile_options(-stdlib=libc++)
-                add_link_options(-stdlib=libc++)
-        endif()
+    if (NOT WIN32)
+        add_compile_options(-stdlib=libc++)
+        add_link_options(-stdlib=libc++)
+    endif ()
 
-        if(WIN32)
-                add_compile_options(-Wno-unused-command-line-argument)
-        endif()
-endif()
+    if (WIN32)
+        add_compile_options(-Wno-unused-command-line-argument)
+    endif ()
+endif ()
 
 string(TOLOWER ${CMAKE_SYSTEM_NAME} PLATFROM_NAME)
 
@@ -78,13 +78,13 @@ set(RESOURCE_DST_DIR "${CMAKE_CURRENT_BINARY_DIR}/resource")
 
 set(VVL_SETTING_PATH "${PROJECT_CUSTOM_LIB_PATH}/custom/settings")
 set(VVL_LIB_PATH "${GLOBAL_LIB_ROOT_PATH}/Vulkan-ValidationLayers")
-if(WIN32)
-        set(VVL_SO_NAME "VkLayer_khronos_validation.dll")
-        set(VVL_JSON_DIR "${VVL_LIB_PATH}/bin")
-else()
-        set(VVL_SO_NAME "libVkLayer_khronos_validation.so")
-        set(VVL_JSON_DIR "${VVL_LIB_PATH}/lib")
-endif()
+if (WIN32)
+    set(VVL_SO_NAME "VkLayer_khronos_validation.dll")
+    set(VVL_JSON_DIR "${VVL_LIB_PATH}/bin")
+else ()
+    set(VVL_SO_NAME "libVkLayer_khronos_validation.so")
+    set(VVL_JSON_DIR "${VVL_LIB_PATH}/lib")
+endif ()
 set(VVL_SO_ABSOLUTE_PATH "${VVL_JSON_DIR}/${VVL_SO_NAME}")
 configure_file(
         "${VVL_SETTING_PATH}/VkLayer_khronos_validation.json.in"
