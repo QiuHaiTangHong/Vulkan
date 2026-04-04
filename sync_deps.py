@@ -4,6 +4,7 @@ import platform
 import subprocess
 import shutil
 import sys
+import re
 from pathlib import Path
 from typing import TypedDict, Dict, List, Optional, Union
 
@@ -14,6 +15,7 @@ class DependencyInfo(TypedDict):
     only_copy: Optional[bool]
     skip_build: Optional[bool]
     parent_command: Optional[List[str]]
+    files: Optional[List[str]]
 
 class Config(TypedDict):
     dependencies: Dict[str, DependencyInfo]
@@ -21,6 +23,53 @@ class Config(TypedDict):
     generator: Optional[str]
     build_type: Optional[str]
     global_cmake_args: List[str]
+
+def filter_platform_args(args: List[str]) -> List[str]:
+    """
+    不仅过滤以 $ 开头的参数，还处理参数内部的 $Tag: 格式。
+    例如: "-DCMAKE_C_FLAGS=-w $Win:-DWIN32" 
+    在 Windows 下变为 "-DCMAKE_C_FLAGS=-w -DWIN32"
+    在 Linux 下变为 "-DCMAKE_C_FLAGS=-w"
+    """
+    current_system = platform.system().lower()
+    tags = {
+        "windows": "$Win:",
+        "linux": "$Linux:"
+    }
+    current_tag = tags.get(current_system, "")
+    all_tags = list(tags.values())
+    filtered: List[str] = []
+    for arg in args:
+        processed_arg = arg
+        for tag in all_tags:
+            if tag == current_tag:
+                processed_arg = re.sub(re.escape(tag), "", processed_arg, flags=re.IGNORECASE)
+            else:
+                pattern = re.escape(tag) + r"[^\s]*"
+                processed_arg = re.sub(pattern, "", processed_arg, flags=re.IGNORECASE)
+        processed_arg = re.sub(r'\s+', ' ', processed_arg).strip()
+        if processed_arg:
+            filtered.append(processed_arg)
+    return filtered
+
+def merge_cmake_args(global_args: List[str], local_args: List[str]) -> List[str]:
+    """
+    合并参数，局部参数覆盖全局参数。
+    识别格式: -D<KEY>=<VALUE> 或 -D<KEY>
+    """
+    merged_map: dict[str, str] = {}
+    def add_to_map(args_list: List[str]):
+        for arg in args_list:
+            if arg.startswith("-D"):
+                kv_part = arg[2:]
+                key = kv_part.split('=')[0]
+                merged_map[key] = arg
+            else:
+                merged_map[arg] = arg
+
+    add_to_map(global_args)
+    add_to_map(local_args) # 局部覆盖全局
+    return list(merged_map.values())
 
 def run_command(cmd: List[str], cwd: Optional[Union[str, Path]] = None) -> None:
     """
@@ -44,6 +93,7 @@ def sync() -> None:
     build_type: str = config.get("build_type") or "Release"
     raw_global_args: List[str] = config.get("global_cmake_args", [])
     global_cmake_args = [arg.replace("${build_type}", build_type) for arg in raw_global_args]
+    global_filtered_cmake_args = filter_platform_args(global_cmake_args)
 
     install_root_path: Path = Path(config["install_root_path"].replace("${project_root}", str(project_root_path))) / system_name
     install_root_path.mkdir(parents=True, exist_ok=True)
@@ -59,6 +109,9 @@ def sync() -> None:
     for name, info in config['dependencies'].items():
         print(f"--- 处理依赖: {name} ---")
         current_install_path = install_root_path / name
+        if current_install_path.exists():
+            print(f"{name} 已存在，跳过安装。")
+            continue
         current_install_path.mkdir(parents=True, exist_ok=True)
         current_src_path: Path = deps_root_path / name
         
@@ -80,10 +133,22 @@ def sync() -> None:
 
         # 构建与安装逻辑
         if info.get('only_copy'):
-            print(f">>> {name} 拷贝库文件跳过构建安装...\n")
-            
+            print(f">>> {name}: 执行文件拷贝...")
             if current_install_path.exists(): shutil.rmtree(current_install_path)
-            shutil.copytree(current_src_path, current_install_path)
+            current_install_path.mkdir(parents=True)
+            files_to_copy = info.get("files")
+            if files_to_copy:
+                for f_name in files_to_copy:
+                    src_file = current_src_path / f_name
+                    dest_file = current_install_path / f_name
+                    if src_file.exists():
+                        dest_file.parent.mkdir(parents=True, exist_ok=True)
+                        shutil.copy2(src_file, dest_file)
+                        print(f">>> 已拷贝: {f_name}")
+                    else:
+                        print(f">>> 警告: 找不到文件 {src_file}")
+            else:
+                shutil.copytree(current_src_path, current_install_path, dirs_exist_ok=True)
         else:
             build_dir: Path = current_src_path / "build"
             build_dir.mkdir(exist_ok=True)
@@ -96,11 +161,9 @@ def sync() -> None:
                 f"-DCMAKE_INSTALL_PREFIX={current_install_path}"
             ]
             
-            cmake_configure.extend(global_cmake_args)
-            cmake_configure.extend(info.get('cmake_args', []))
-            
-            if platform.system() == "Windows":
-                cmake_configure.append("-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL")
+            local_filtered_cmake_args = filter_platform_args(info.get('cmake_args', []))
+            final_args = merge_cmake_args(global_filtered_cmake_args, local_filtered_cmake_args)
+            cmake_configure.extend(final_args)
 
             run_command(cmake_configure)
 

@@ -54,6 +54,8 @@ set(
         "${GLOBAL_LIB_ROOT_PATH}/Vulkan-Headers"
         "${GLOBAL_LIB_ROOT_PATH}/Vulkan-ValidationLayers"
         "${GLOBAL_LIB_ROOT_PATH}/glslang"
+        "${GLOBAL_LIB_ROOT_PATH}/Vulkan-Utility-Libraries"
+        "${GLOBAL_LIB_ROOT_PATH}/Vulkan-Loader"
 )
 
 set(IMGUI_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib/${PLATFROM_NAME}/imgui")
@@ -95,6 +97,7 @@ configure_file(
 find_package(glfw3 REQUIRED)
 find_package(glm REQUIRED)
 find_package(VulkanHeaders REQUIRED)
+find_package(VulkanUtilityLibraries REQUIRED)
 find_package(Vulkan REQUIRED)
 find_package(glslang REQUIRED)
 
@@ -156,4 +159,6 @@ target_link_libraries(
         glfw
         glm::glm
         Vulkan::Vulkan
+        Vulkan::LayerSettings
+        Vulkan::UtilityHeaders
 )
