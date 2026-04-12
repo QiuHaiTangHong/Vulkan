@@ -73,10 +73,17 @@ set(IMGUI_BACKENDS
         ${IMGUI_DIR}/backends/imgui_impl_vulkan.cpp
 )
 
-set(MODULES_ROOT_PATH "${PROJECT_CUSTOM_LIB_PATH}/custom/vulkan")
+set(MODULES_ROOT_PATH "${PROJECT_CUSTOM_LIB_PATH}/custom/modules")
+set(MODULE_DEF_PATH "${MODULES_ROOT_PATH}/definition")
+set(MODULE_IMPL_PATH "${MODULES_ROOT_PATH}/implement")
 
+# 定义资源目录
 set(RESOURCE_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/resource")
 set(RESOURCE_DST_DIR "${CMAKE_CURRENT_BINARY_DIR}/resource")
+
+# 定义 Shader 文件路径
+set(SHADER_SRC_DIR "${RESOURCE_SRC_DIR}/shaders")
+set(SHADER_DST_DIR "${RESOURCE_DST_DIR}/shaders")
 
 set(VVL_SETTING_PATH "${PROJECT_CUSTOM_LIB_PATH}/custom/settings")
 set(VVL_LIB_PATH "${GLOBAL_LIB_ROOT_PATH}/Vulkan-ValidationLayers")
@@ -101,34 +108,96 @@ find_package(VulkanUtilityLibraries REQUIRED)
 find_package(Vulkan REQUIRED)
 find_package(glslang REQUIRED)
 
+# 定义主目标
 file(
         GLOB_RECURSE
         PROJECT_CUSTOM_LIB_IMPL
         "${PROJECT_CUSTOM_LIB_PATH}/src/*.cpp"
 )
-
-set(MODULES_ROOT_PATH "${PROJECT_CUSTOM_LIB_PATH}/custom/vulkan")
-file(GLOB ALL_MODULE_FILES "${MODULES_ROOT_PATH}/*.cppm")
-
 add_executable(
         Vulkan
         ${PROJECT_ROOT_PATH}/main.cpp
-        ${IMGUI_SOURCES}
-        ${IMGUI_BACKENDS}
-        ${PROJECT_CUSTOM_LIB_IMPL}
 )
 
-add_custom_command(
-        OUTPUT "${RESOURCE_DST_DIR}/.log"
-        COMMAND ${CMAKE_COMMAND} -E remove_directory "${RESOURCE_DST_DIR}"
-        COMMAND ${CMAKE_COMMAND} -E copy_directory "${RESOURCE_SRC_DIR}" "${RESOURCE_DST_DIR}"
-        COMMAND ${CMAKE_COMMAND} -E touch "${RESOURCE_DST_DIR}/.log"
-        DEPENDS "${RESOURCE_SRC_DIR}"
-        COMMENT "正在同步整个资源目录: ${RESOURCE_SRC_DIR} -> ${RESOURCE_DST_DIR}"
-        VERBATIM
+# 查找 Shader 编译工具.
+find_program(GLSLANG_VALIDATOR NAMES glslangValidator)
+if(GLSLANG_VALIDATOR)
+    set(SHADER_COMPILER ${GLSLANG_VALIDATOR})
+    set(SHADER_COMPILE_FLAGS "-V") # -V 代表生成 SPIR-V
+else()
+    message(FATAL_ERROR "未找到 Shader 编译器 glslangValidator！")
+endif()
+
+# 收集并编译 Shader 文件.
+file(MAKE_DIRECTORY ${SHADER_DST_DIR})
+file(GLOB_RECURSE SHADER_FILES
+        "${SHADER_SRC_DIR}/*.vert"
+        "${SHADER_SRC_DIR}/*.frag"
+        "${SHADER_SRC_DIR}/*.comp"
+        "${SHADER_SRC_DIR}/*.geom"
 )
+message(STATUS "------------------------------------------------")
+if(SHADER_FILES)
+    message(STATUS "找到以下 Shader 文件:")
+    foreach(FILE_PATH ${SHADER_FILES})
+        message(STATUS "${FILE_PATH}")
+    endforeach()
+else()
+    message(WARNING "警告: 在目录 ${SHADER_SRC_DIR} 中没有找到任何 Shader 文件！")
+endif()
+message(STATUS "------------------------------------------------")
+
+set(SPIRV_BINARY_FILES "")
+foreach(SHADER_PATH ${SHADER_FILES})
+    get_filename_component(RAW_NAME "${SHADER_PATH}" NAME)
+    string(REPLACE "." "_" TEMP_NAME "${RAW_NAME}")
+    set(NEW_NAME "${TEMP_NAME}.spv")
+    set(SPIRV_PATH "${SHADER_DST_DIR}/${NEW_NAME}")
+    add_custom_command(
+            OUTPUT ${SPIRV_PATH}
+            COMMAND ${SHADER_COMPILER} ${SHADER_COMPILE_FLAGS} ${SHADER_PATH} -o ${SPIRV_PATH}
+            DEPENDS ${SHADER_PATH}
+            COMMENT "正在编译 Shader: ${RAW_NAME} -> ${NEW_NAME}"
+            VERBATIM
+    )
+    list(APPEND SPIRV_BINARY_FILES ${SPIRV_PATH})
+endforeach()
+add_custom_target(CompileShaders DEPENDS ${SPIRV_BINARY_FILES})
+
+# 处理其它资源.
+set(FILTERED_RESOURCES "")
+foreach(ITEM ${RESOURCE_ITEMS})
+    get_filename_component(ABS_ITEM "${ITEM}" ABSOLUTE)
+    get_filename_component(ABS_SHADER_DIR "${SHADER_SRC_DIR}" ABSOLUTE)
+
+    if(NOT ABS_ITEM STREQUAL ABS_SHADER_DIR)
+        list(APPEND FILTERED_RESOURCES "${ITEM}")
+    endif()
+endforeach()
+if(FILTERED_RESOURCES)
+    add_custom_command(
+            OUTPUT "${RESOURCE_DST_DIR}/.log"
+            COMMAND ${CMAKE_COMMAND} -E make_directory "${RESOURCE_DST_DIR}"
+            COMMAND ${CMAKE_COMMAND} -E copy ${FILTERED_RESOURCES} "${RESOURCE_DST_DIR}"
+            COMMAND ${CMAKE_COMMAND} -E touch "${RESOURCE_DST_DIR}/.log"
+            DEPENDS ${FILTERED_RESOURCES}
+            COMMENT "正在同步通用资源..."
+            VERBATIM
+    )
+else()
+    add_custom_command(
+            OUTPUT "${RESOURCE_DST_DIR}/.log"
+            COMMAND ${CMAKE_COMMAND} -E make_directory "${RESOURCE_DST_DIR}"
+            COMMAND ${CMAKE_COMMAND} -E touch "${RESOURCE_DST_DIR}/.log"
+            COMMENT "没有额外资源需要同步"
+            VERBATIM
+    )
+endif()
 add_custom_target(CopyResources ALL DEPENDS "${RESOURCE_DST_DIR}/.log")
+
 add_dependencies(Vulkan CopyResources)
+add_dependencies(Vulkan CompileShaders)
+
 target_compile_definitions(
         Vulkan PRIVATE
         RESOURCE_DIR="${RESOURCE_DST_DIR}"
@@ -139,11 +208,21 @@ target_compile_definitions(
         VVL_JSON_DIR="${CMAKE_CURRENT_BINARY_DIR}"
 )
 
+file(GLOB ALL_MODULE_DEFS "${MODULE_DEF_PATH}/*.cppm")
 target_sources(Vulkan
         PUBLIC
         FILE_SET CXX_MODULES
         BASE_DIRS "${PROJECT_CUSTOM_LIB_PATH}"
-        FILES ${ALL_MODULE_FILES}
+        FILES ${ALL_MODULE_DEFS}
+)
+
+file(GLOB ALL_MODULE_IMPLS "${MODULE_IMPL_PATH}/*.cpp")
+target_sources(Vulkan
+        PRIVATE
+        ${ALL_MODULE_IMPLS}
+        ${IMGUI_SOURCES}
+        ${IMGUI_BACKENDS}
+        ${PROJECT_CUSTOM_LIB_IMPL}
 )
 
 target_include_directories(
