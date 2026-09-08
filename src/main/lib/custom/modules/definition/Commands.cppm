@@ -55,16 +55,13 @@ export namespace CustomVulkan
     // ReSharper disable once CppVariableCanBeMadeConstexpr
     const std::vector<VertexTool> vertices = {
         {
-            {0.0f, -0.5f},
-            {1.0f, 0.0f, 0.0f}
+            {0.0f, -0.5f}, {1.0f, 1.0f, 1.0f}
         },
         {
-            {0.5f, 0.5f},
-            {0.0f, 1.0f, 0.0f}
+            {0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}
         },
         {
-            {-0.5f, 0.5f},
-            {0.0f, 0.0f, 1.0f}
+            {-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}
         }
     };
 
@@ -76,7 +73,7 @@ export namespace CustomVulkan
             Tag, IVulkanInit>;
 
     private:
-        auto findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties) const -> uint32_t;
+        [[nodiscard]] auto findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties) const -> uint32_t;
     };
 
     template <typename Tag>
